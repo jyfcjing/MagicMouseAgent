@@ -10,6 +10,8 @@ The current default mappings are:
 - Google Chrome `Two-Finger Tap` -> close current tab
 - Google Chrome `Middle-Fix Index-Near-Tap` -> reopen last closed tab
 - Google Chrome `Middle-Fix Index-Far-Tap` -> reopen last closed tab
+- Google Chrome `Index-Fix Middle-Near-Tap` -> new tab
+- Google Chrome `Index-Fix Middle-Far-Tap` -> new tab
 
 ## Why this exists
 
@@ -29,6 +31,7 @@ The current implementation includes:
 - custom right-front tap handling for global right click
 - custom one-finger tap handling for tap-to-click style primary click
 - custom hold-right plus tap-left handling for reopening the most recently closed Chrome tab
+- custom hold-left plus tap-right handling for opening a new Chrome tab
 
 ## Requirements
 
@@ -50,6 +53,18 @@ The build output is:
 
 ```text
 build/MagicMouseAgent.app
+```
+
+## Package
+
+```bash
+./package.sh
+```
+
+This creates a ready-to-run release archive under:
+
+```text
+dist/MagicMouseAgent-0.1.0-macos.zip
 ```
 
 ## Run

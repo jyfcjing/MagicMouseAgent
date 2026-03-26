@@ -146,11 +146,16 @@ static int trigger = 0;
 static int disableHorizontalScroll;
 static CFAbsoluteTime customMagicMouseScrollSuppressionUntil = 0;
 static CFAbsoluteTime customMagicMouseTapSuppressionUntil = 0;
-static const float kMagicMousePrimaryTapStartMinY = 0.46f;
-static const float kMagicMousePrimaryTapKeepMinY = 0.42f;
-static const double kMagicMousePrimaryTapMaxDuration = 0.20;
-static const double kMagicMousePrimaryTapMaxMove = 0.00115;
+static CFAbsoluteTime customMagicMousePrimaryTapSuppressionUntil = 0;
+static const float kMagicMousePrimaryTapStartMinY = 0.58f;
+static const float kMagicMousePrimaryTapKeepMinY = 0.54f;
+static const double kMagicMousePrimaryTapMaxDuration = 0.14;
+static const double kMagicMousePrimaryTapMaxMove = 0.00035;
 static const double kMagicMouseTapSuppressionAfterScroll = 0.14;
+static const float kMagicMouseTwoFingerTapRearMinY = 0.16f;
+static const double kMagicMouseTwoFingerTapMaxDuration = 0.36;
+static const double kMagicMouseTwoFingerTapMaxMove = 0.006;
+static const double kMagicMouseTwoFingerTapLiftGraceDuration = 0.10;
 static const float kMagicMouseRightFrontTapStartMinX = 0.74f;
 static const float kMagicMouseRightFrontTapStartMinY = 0.78f;
 static const float kMagicMouseRightFrontTapKeepMinX = 0.70f;
@@ -2439,6 +2444,11 @@ static void gestureMagicMouseOneFingerSwipe(const Finger *data, int nFingers, do
 }
 
 static void gestureMagicMouseTwoFingerTap(Finger *data, int nFingers, double timestamp, int thumbPresent) {
+    enum {
+        kTwoFingerTapIdle = 0,
+        kTwoFingerTapTracking = 1,
+        kTwoFingerTapWaitingForLift = 2,
+    };
     static int step = 0;
     static double startTime = -1;
     static int fingerIds[2];
@@ -2464,20 +2474,20 @@ static void gestureMagicMouseTwoFingerTap(Finger *data, int nFingers, double tim
         data[nFingers] = tmp;
     }
 
-    if (step == 0 && nFingers == 2) {
-        step = 1;
+    if (step == kTwoFingerTapIdle && nFingers == 2) {
+        step = kTwoFingerTapTracking;
         startTime = timestamp;
         for (int i = 0; i < 2; i++) {
             fingerIds[i] = data[i].identifier;
             startx[i] = data[i].px;
             starty[i] = data[i].py;
         }
-    } else if (step == 1 && nFingers == 2) {
+    } else if (step == kTwoFingerTapTracking && nFingers == 2) {
         for (int i = 0; i < 2; i++) {
             int matched = 0;
             for (int j = 0; j < 2; j++) {
                 if (data[j].identifier == fingerIds[i]) {
-                    if (lenSqr(data[j].px, data[j].py, startx[i], starty[i]) > 0.0025) {
+                    if (lenSqr(data[j].px, data[j].py, startx[i], starty[i]) > kMagicMouseTwoFingerTapMaxMove) {
                         step = 0;
                     }
                     matched = 1;
@@ -2491,11 +2501,27 @@ static void gestureMagicMouseTwoFingerTap(Finger *data, int nFingers, double tim
                 break;
             }
         }
-        if (step == 1 && timestamp - startTime > clickSpeed) {
+        if (step == kTwoFingerTapTracking && timestamp - startTime > kMagicMouseTwoFingerTapMaxDuration) {
             step = 0;
         }
-    } else if (step == 1 && nFingers == 0) {
-        if (timestamp - startTime <= clickSpeed) {
+    } else if ((step == kTwoFingerTapTracking || step == kTwoFingerTapWaitingForLift) && nFingers == 1) {
+        int matched = 0;
+        for (int i = 0; i < 2; i++) {
+            if (data[0].identifier == fingerIds[i]) {
+                if (lenSqr(data[0].px, data[0].py, startx[i], starty[i]) > kMagicMouseTwoFingerTapMaxMove) {
+                    step = 0;
+                }
+                matched = 1;
+                break;
+            }
+        }
+        if (!matched || timestamp - startTime > kMagicMouseTwoFingerTapMaxDuration + kMagicMouseTwoFingerTapLiftGraceDuration) {
+            step = 0;
+        } else {
+            step = kTwoFingerTapWaitingForLift;
+        }
+    } else if ((step == kTwoFingerTapTracking || step == kTwoFingerTapWaitingForLift) && nFingers == 0) {
+        if (timestamp - startTime <= kMagicMouseTwoFingerTapMaxDuration + kMagicMouseTwoFingerTapLiftGraceDuration) {
             dispatchCommand(@"Two-Finger Tap", MAGICMOUSE);
         }
         step = 0;
@@ -2519,7 +2545,8 @@ static void gestureMagicMouseRightFrontTap(const Finger *data, int nFingers, dou
     static float startx = 0;
     static float starty = 0;
 
-    if (customMagicMouseTapSuppressionUntil > CFAbsoluteTimeGetCurrent()) {
+    if (customMagicMouseTapSuppressionUntil > CFAbsoluteTimeGetCurrent() ||
+        customMagicMousePrimaryTapSuppressionUntil > CFAbsoluteTimeGetCurrent()) {
         step = 0;
         touchId = -1;
         startTime = -1;
@@ -2568,14 +2595,30 @@ static void gestureMagicMouseRightFrontTap(const Finger *data, int nFingers, dou
 }
 
 static void gestureMagicMouseOneFingerTap(const Finger *data, int nFingers, double timestamp) {
+    enum {
+        kPrimaryTapIdle = 0,
+        kPrimaryTapTracking = 1,
+        kPrimaryTapRejectedUntilLift = 2,
+    };
     static int step = 0;
     static int touchId = -1;
     static double startTime = -1;
     static float startx = 0;
     static float starty = 0;
 
-    if (customMagicMouseTapSuppressionUntil > CFAbsoluteTimeGetCurrent()) {
-        step = 0;
+    if (nFingers == 0) {
+        if (step == kPrimaryTapTracking && timestamp - startTime <= kMagicMousePrimaryTapMaxDuration) {
+            dispatchCommand(@"One-Finger Tap", MAGICMOUSE);
+        }
+        step = kPrimaryTapIdle;
+        touchId = -1;
+        startTime = -1;
+        return;
+    }
+
+    if (customMagicMouseTapSuppressionUntil > CFAbsoluteTimeGetCurrent() ||
+        customMagicMousePrimaryTapSuppressionUntil > CFAbsoluteTimeGetCurrent()) {
+        step = kPrimaryTapRejectedUntilLift;
         touchId = -1;
         startTime = -1;
         return;
@@ -2583,40 +2626,37 @@ static void gestureMagicMouseOneFingerTap(const Finger *data, int nFingers, doub
 
     if (CGEventSourceButtonState(kCGEventSourceStateHIDSystemState, kCGMouseButtonLeft) ||
         CGEventSourceButtonState(kCGEventSourceStateHIDSystemState, kCGMouseButtonRight)) {
-        step = 0;
+        step = kPrimaryTapRejectedUntilLift;
         touchId = -1;
         startTime = -1;
         return;
     }
 
-    if (step == 0 && nFingers == 1) {
+    if (step == kPrimaryTapRejectedUntilLift) {
+        return;
+    }
+
+    if (step == kPrimaryTapIdle && nFingers == 1) {
         if (data[0].py >= kMagicMousePrimaryTapStartMinY &&
             !magicMousePointIsRightFrontTapRegion(data[0].px, data[0].py)) {
-            step = 1;
+            step = kPrimaryTapTracking;
             touchId = data[0].identifier;
             startTime = timestamp;
             startx = data[0].px;
             starty = data[0].py;
         }
-    } else if (step == 1 && nFingers == 1) {
+    } else if (step == kPrimaryTapTracking && nFingers == 1) {
         if (data[0].identifier != touchId ||
             lenSqr(data[0].px, data[0].py, startx, starty) > kMagicMousePrimaryTapMaxMove ||
             data[0].py < kMagicMousePrimaryTapKeepMinY ||
             magicMousePointIsRightFrontTapRegion(data[0].px, data[0].py) ||
             timestamp - startTime > kMagicMousePrimaryTapMaxDuration) {
-            step = 0;
+            step = kPrimaryTapRejectedUntilLift;
             touchId = -1;
             startTime = -1;
         }
-    } else if (step == 1 && nFingers == 0) {
-        if (timestamp - startTime <= kMagicMousePrimaryTapMaxDuration) {
-            dispatchCommand(@"One-Finger Tap", MAGICMOUSE);
-        }
-        step = 0;
-        touchId = -1;
-        startTime = -1;
     } else if (nFingers != 1) {
-        step = 0;
+        step = kPrimaryTapRejectedUntilLift;
         touchId = -1;
         startTime = -1;
     }
@@ -3203,8 +3243,9 @@ static int magicMouseCallback(MTDeviceRef device, Finger *data, int nFingers, do
     }
 
     if (nFingers > 1) {
+        float minAllowedY = (nFingers == 2) ? kMagicMouseTwoFingerTapRearMinY : 0.3f;
         for (int i = 0; i < nFingers; i++) {
-            if (data[i].py < 0.3) {
+            if (data[i].py < minAllowedY) {
                 data[i] = data[--nFingers];
             }
 
@@ -3519,8 +3560,8 @@ static CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEve
         if (axis1 != 0 || pointAxis1 != 0 || fixedAxis1 != 0 ||
             axis2 != 0 || pointAxis2 != 0 || fixedAxis2 != 0) {
             CFAbsoluteTime suppressionUntil = CFAbsoluteTimeGetCurrent() + kMagicMouseTapSuppressionAfterScroll;
-            if (suppressionUntil > customMagicMouseTapSuppressionUntil) {
-                customMagicMouseTapSuppressionUntil = suppressionUntil;
+            if (suppressionUntil > customMagicMousePrimaryTapSuppressionUntil) {
+                customMagicMousePrimaryTapSuppressionUntil = suppressionUntil;
             }
         }
         if (magicMouseThreeFingerFlag || isTrackpadRecognizing)

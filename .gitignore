@@ -1,4 +1,5 @@
 build/
+dist/
 run/
 config/
 .DS_Store

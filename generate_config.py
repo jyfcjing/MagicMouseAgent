@@ -60,6 +60,8 @@ def build_magic_mouse_commands() -> list[dict]:
                 action("Two-Finger Tap", "Close / Close Tab"),
                 action("Middle-Fix Index-Near-Tap", "Open Recently Closed Tab"),
                 action("Middle-Fix Index-Far-Tap", "Open Recently Closed Tab"),
+                action("Index-Fix Middle-Near-Tap", "New Tab"),
+                action("Index-Fix Middle-Far-Tap", "New Tab"),
             ],
         ),
     ]
@@ -85,13 +87,14 @@ def build_recognition_commands() -> list[dict]:
 def write_summary() -> None:
     text = """# Migration Summary
 
-This pass is intentionally mouse-first and focused on replacing a small BetterTouchTool setup with a dedicated Magic Mouse agent.
+This pass is intentionally mouse-first and focused on replacing the specific BetterTouchTool gestures that were still missing.
 
 Supported now:
 - Magic Mouse single-finger tap for a primary left click.
 - Magic Mouse single-finger swipe left/right for previous/next tab in Chrome.
 - Magic Mouse two-finger tap to close the current tab in Google Chrome.
 - Magic Mouse hold-right plus tap-left to reopen the most recently closed tab in Google Chrome.
+- Magic Mouse hold-left plus tap-right to open a new tab in Google Chrome.
 - Magic Mouse front-right tap for a global right click.
 
 Not migrated 1:1 in this pass:
