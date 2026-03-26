@@ -1,0 +1,14 @@
+MagicMouseAgent
+
+This repository is distributed under the GNU General Public License v3.0.
+
+It contains modified source files derived from Jitouch:
+- Copyright (c) Supasorn Suwajanakorn and Sukolsak Sakshuwong
+- Modified work copyright (c) Aaron Kollasch
+- Original project: https://github.com/JitouchApp/Jitouch
+
+This repository does not vendor any files from MiddleClick.
+Gesture tuning and compatibility investigation for modern macOS behavior were informed by reviewing:
+- https://github.com/artginzburg/MiddleClick
+
+Additional packaging, configuration, and Magic Mouse gesture adaptations were added for the MagicMouseAgent project in 2026.
