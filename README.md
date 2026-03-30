@@ -20,6 +20,7 @@ build/MagicMouseAgent.app
 
 6. Test the gestures in Chrome.
 7. If you want it to launch automatically after login, double-click `Install at Login.command`.
+   Running it again also repairs a previously disabled login item.
 
 If you downloaded the source code instead of a packaged zip:
 
@@ -55,6 +56,7 @@ These files are meant for normal users who would rather click than type:
 2. Remove `build/MagicMouseAgent.app` from Accessibility, then add it again.
 3. Run `Stop MagicMouseAgent.command`, then `Start MagicMouseAgent.command`.
 4. If macOS blocks the script or app because it is unsigned, right-click it once and choose `Open`.
+5. If it stopped launching after login, run `Install at Login.command` again to re-enable the login item.
 
 ## For Technical Users
 

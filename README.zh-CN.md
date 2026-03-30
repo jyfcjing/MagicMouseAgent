@@ -26,6 +26,7 @@ build/MagicMouseAgent.app
 
 5. 去 Chrome 里测试手势
 6. 如果想开机自动启动，双击 `Install at Login.command`
+   如果之前关掉过登录启动，或者登录项被系统禁用了，再双击一次也会自动修复
 
 如果你下载的是源码，而不是打包好的 zip：
 
@@ -59,6 +60,7 @@ build/MagicMouseAgent.app
 2. 在辅助功能里把 `build/MagicMouseAgent.app` 删掉后重新添加
 3. 先双击 `Stop MagicMouseAgent.command`，再双击 `Start MagicMouseAgent.command`
 4. 如果 macOS 提示“无法打开”或“未验证开发者”，对脚本或 app 右键，选一次“打开”
+5. 如果它登录后不再自动启动，再双击一次 `Install at Login.command`，重新启用登录项
 
 ## 给技术用户的命令
 

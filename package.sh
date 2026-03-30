@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="${0:A:h}"
 APP_NAME="MagicMouseAgent"
-VERSION="${1:-0.1.0}"
+VERSION="${1:-0.1.1}"
 DIST_DIR="$ROOT/dist"
 STAGE_ROOT="$(mktemp -d "/tmp/${APP_NAME}.XXXXXX")"
 PACKAGE_DIR="$STAGE_ROOT/$APP_NAME-$VERSION"

@@ -47,7 +47,10 @@ cat > "$PLIST_DST" <<PLIST
 PLIST
 
 launchctl bootout "$GUI_DOMAIN" "$PLIST_DST" >/dev/null 2>&1 || true
-launchctl bootstrap "$GUI_DOMAIN" "$PLIST_DST"
+# `launchctl disable` persists across logins. Re-enable first so a reinstall can
+# recover a previously removed or disabled login item before bootstrapping it.
 launchctl enable "$GUI_DOMAIN/$LABEL"
+launchctl bootstrap "$GUI_DOMAIN" "$PLIST_DST"
+launchctl kickstart -k "$GUI_DOMAIN/$LABEL" >/dev/null 2>&1 || true
 
 echo "$PLIST_DST"
