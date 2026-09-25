@@ -1074,7 +1074,11 @@ static void doCommand(NSString *gesture, int device) {
                 CGEventRef ourEvent = CGEventCreate(NULL);
                 CGPoint location = CGEventGetLocation(ourEvent);
                 CFRelease(ourEvent);
-                BOOL handledByAX = showContextMenuUnderMouse();
+                // Chrome's ancestor AXShowMenu action can open the tab-strip
+                // menu, then report failure and trigger a second context menu.
+                // Use only the pointer-based click path in Chrome.
+                BOOL handledByAX = [application isEqualToString:@"Google Chrome"]
+                    ? NO : showContextMenuUnderMouse();
                 if (logLevel >= LOG_LEVEL_INFO) {
                     NSLog(@"Right Click handledByAX=%d", handledByAX ? 1 : 0);
                 }

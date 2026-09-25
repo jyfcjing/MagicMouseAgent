@@ -4,6 +4,10 @@ MagicMouseAgent is a small macOS helper for a very specific job: replacing a sma
 
 Chinese guide: [README.zh-CN.md](README.zh-CN.md)
 
+## Latest Update — v0.1.2
+
+Fixes right-front taps in Chrome briefly opening the tab-strip menu before the expected context menu. Chrome now uses a single simulated click to open the menu at the pointer.
+
 ## Quick Start
 
 If you only want to use it and do not want to read build instructions, do this:
